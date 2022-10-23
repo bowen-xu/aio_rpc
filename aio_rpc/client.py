@@ -23,10 +23,10 @@ import aiosock
 from aiosock import AioSock
 from threading import Thread
 from .utils import build_socket, MsgType
+from .node import AioRpcNode
 
 
-
-class AioRpcClient(Thread):
+class AioRpcClient(AioRpcNode):
     csock: AioSock = None
 
     def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:
@@ -36,6 +36,7 @@ class AioRpcClient(Thread):
         self.name = name
         self.callbacks: Dict[int, Callable] = {}
         # self.callback_accept = callback_accept
+
 
     def init(self):
         filename = self.root/(self.name+'.json')
@@ -53,7 +54,7 @@ class AioRpcClient(Thread):
         self.csock = csock
 
         csock.init(self._on_sock_recv)
-        
+
 
     def call(self, name_func, callback, *args):
         ''''''
@@ -69,7 +70,6 @@ class AioRpcClient(Thread):
         ''''''
 
 
-
     def _on_sock_recv(self, data: Tuple[MsgType, int, Tuple]):
         ''''''
         msg_type = data[0]
@@ -77,12 +77,4 @@ class AioRpcClient(Thread):
             _, pack_id, ret = data
             callback = self.callbacks[pack_id]
             callback(ret)
-        
 
-    def run(self) -> None:
-        ''''''
-        self.init()
-        loop = asyncio.get_event_loop()
-        loop.run_forever()
-
-        

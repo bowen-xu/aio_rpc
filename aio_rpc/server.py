@@ -23,6 +23,7 @@ from aiosock import AioSock
 from threading import Thread
 from .utils import MsgType, build_socket
 # from aio_zmq_rpc import rpc
+from .node import AioRpcNode
 
 
 def rpc(instance: 'AioRpcServer', name):
@@ -33,7 +34,7 @@ def rpc(instance: 'AioRpcServer', name):
     return my_decorator
 
 
-class AioRpcServer(Thread):
+class AioRpcServer(AioRpcNode):
     
     def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:
         ''''''
@@ -95,9 +96,7 @@ class AioRpcServer(Thread):
         self.func_coros[name] = func_coro
 
 
-    def run(self) -> None:
-        ''''''
-        # loop = asyncio.new_event_loop()
+    def init(self):
         try:
             loop = asyncio.get_event_loop()
         except:
@@ -119,9 +118,7 @@ class AioRpcServer(Thread):
             }, f)
         print(f'Server [{self.name}]: {addr}:{port}')
         print('IO Process'.center(50, '-'))
-        loop.run_forever()
 
-        os.remove(filename)
 
 
 if __name__ == '__main__':
