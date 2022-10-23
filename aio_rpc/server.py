@@ -1,28 +1,14 @@
-
-import asyncio
-from multiprocessing import Process
-import os
-import pickle
-from time import sleep, time
-from typing import Any, Callable, Dict, Iterable, Tuple, Type
-import aiosock
+from typing import Callable, Dict, Tuple, Any, Coroutine
 from pathlib import Path
-from _socket import *
 from socket import socket
 
-import inspect
-_LOCALHOST    = '127.0.0.1'
-_LOCALHOST_V6 = '::1'
-try: from socket import _LOCALHOST, _LOCALHOST_V6
-except: pass
 import json
-from typing import Coroutine
+import inspect
 
-import aiosock
+import asyncio
+
 from aiosock import AioSock
-from threading import Thread
-from .utils import MsgType, build_socket
-# from aio_zmq_rpc import rpc
+from .utils import build_socket, MsgType
 from .node import AioRpcNode
 
 
@@ -47,7 +33,41 @@ class AioRpcServer(AioRpcNode):
         self.func_coros = {}
 
 
-    def on_acception(self, ssock: AioSock):
+    def init(self):
+        try:
+            loop = asyncio.get_event_loop()
+        except:
+            asyncio.set_event_loop(asyncio.SelectorEventLoop())
+            loop = asyncio.get_event_loop()
+
+        print('IO Process'.center(50, '='))
+        
+        lsock, addr, port = build_socket()
+        print('lsock', lsock)
+        loop.create_task(self._start_listening(lsock, self._on_acception))
+        filename = self.root/(self.name+'.json')
+        with open(filename, 'w') as f:
+            json.dump({
+                self.name: {
+                    'addr': addr,
+                    'port': port
+                }
+            }, f)
+        print(f'Server [{self.name}]: {addr}:{port}')
+        print('IO Process'.center(50, '-'))
+
+
+    def add(self, func, name):
+        ''''''
+        self.funcs[name] = func
+    
+
+    def add_async(self, func_coro, name):
+        ''''''
+        self.func_coros[name] = func_coro
+
+
+    def _on_acception(self, ssock: AioSock):
         ssock.init((self._on_sock_recv, ssock))
 
 
@@ -62,7 +82,6 @@ class AioRpcServer(AioRpcNode):
                 # print('write to client')
 
 
-    
     async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine'=None):
         ''''''
         print('start listening')
@@ -84,40 +103,6 @@ class AioRpcServer(AioRpcNode):
                     loop.call_soon(callback_accept, ssock)
                 else:
                     raise TypeError('callback_accept类型错误')
-
-
-    def add(self, func, name):
-        ''''''
-        self.funcs[name] = func
-    
-
-    def add_async(self, func_coro, name):
-        ''''''
-        self.func_coros[name] = func_coro
-
-
-    def init(self):
-        try:
-            loop = asyncio.get_event_loop()
-        except:
-            asyncio.set_event_loop(asyncio.SelectorEventLoop())
-            loop = asyncio.get_event_loop()
-
-        print('IO Process'.center(50, '='))
-        
-        lsock, addr, port = build_socket()
-        print('lsock', lsock)
-        loop.create_task(self._start_listening(lsock, self.on_acception))
-        filename = self.root/(self.name+'.json')
-        with open(filename, 'w') as f:
-            json.dump({
-                self.name: {
-                    'addr': addr,
-                    'port': port
-                }
-            }, f)
-        print(f'Server [{self.name}]: {addr}:{port}')
-        print('IO Process'.center(50, '-'))
 
 
 
