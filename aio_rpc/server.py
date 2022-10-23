@@ -98,15 +98,18 @@ class AioRpcServer(Thread):
     def run(self) -> None:
         ''''''
         # loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(asyncio.SelectorEventLoop())
+        try:
+            loop = asyncio.get_event_loop()
+        except:
+            asyncio.set_event_loop(asyncio.SelectorEventLoop())
+            loop = asyncio.get_event_loop()
 
         print('IO Process'.center(50, '='))
         
-        loop = asyncio.get_event_loop()
         lsock, addr, port = build_socket()
         print('lsock', lsock)
         loop.create_task(self._start_listening(lsock, self.on_acception))
-        filename = self.root/'AioRpcServer.json'
+        filename = self.root/(self.name+'.json')
         with open(filename, 'w') as f:
             json.dump({
                 self.name: {

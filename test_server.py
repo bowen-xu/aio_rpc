@@ -17,4 +17,4 @@ def test1():
     print(s)
     return s
 
-server.run()
+server.start()

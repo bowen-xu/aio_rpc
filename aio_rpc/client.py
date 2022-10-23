@@ -38,7 +38,7 @@ class AioRpcClient(Thread):
         # self.callback_accept = callback_accept
 
     def init(self):
-        filename = self.root/'AioRpcServer.json'
+        filename = self.root/(self.name+'.json')
         with open(filename, 'r') as f:
             info = json.load(f)
             info = info[self.name]
