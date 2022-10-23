@@ -1,26 +1,11 @@
-import asyncio
 from enum import Enum
-from multiprocessing import Process
-import os
-import pickle
-from time import sleep, time
-from typing import Any, Callable, Dict, Iterable, Tuple, Type
-import aiosock
-from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, Tuple
 from _socket import *
 from socket import socket
-
-import inspect
 _LOCALHOST    = '127.0.0.1'
 _LOCALHOST_V6 = '::1'
 try: from socket import _LOCALHOST, _LOCALHOST_V6
 except: pass
-import json
-from typing import Coroutine
-
-import aiosock
-from aiosock import AioSock
-from threading import Thread
 
 
 class MsgType(Enum):
