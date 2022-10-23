@@ -27,7 +27,8 @@ Remote Procedure Caller based-on Asynchronous IO and Socket
 
 ##### `__init__`
 
-#### `call`
+##### `init`
 
+#### `call`
 
 
