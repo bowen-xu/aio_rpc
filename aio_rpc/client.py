@@ -1,4 +1,5 @@
 from asyncio import Event
+from socket import AF_INET, AF_INET6, AddressFamily
 from typing import Callable, Dict, Tuple
 from pathlib import Path
 import uuid
@@ -6,7 +7,6 @@ import uuid
 import json
 
 from aiosock import AioSock
-from tenacity import Future
 from .utils import build_socket, MsgType
 from .base import AioRpcBase
 
@@ -32,25 +32,30 @@ def _asynchronify(_call, pos_callback):
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
 
-    def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0') -> None:
         ''''''
         super().__init__()
-        self.root = root
+        self.root = Path(root)
         self.name = name
         # self.callback_accept = callback_accept
-
+        self.root.mkdir(parents=True, exist_ok=True)
 
     def init(self):
         filename = self.root/(self.name+'.json')
         with open(filename, 'r') as f:
             info = json.load(f)
             info = info[self.name]
-        addr, port = info['addr'], info['port']
-        csock, *_ = build_socket()
+        addr = info['addr']
+        family = info['family']
+        family = AddressFamily[family]
+        if family in (AF_INET, AF_INET6): addr = tuple(addr)
+        else: addr = str(addr)
+        
+        csock, *_ = build_socket(uds_root=None)
         csock.setblocking(True)
 
         print('connecting...')
-        csock.connect((addr, port))
+        csock.connect(addr)
         print('csock', csock)
         csock = AioSock(csock, 4)
         self.csock = csock

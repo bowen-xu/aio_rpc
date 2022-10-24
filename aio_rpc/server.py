@@ -1,6 +1,11 @@
+import os
 from typing import Callable, Dict, Tuple, Any, Coroutine, Awaitable
 from pathlib import Path
-from socket import socket
+from socket import AddressFamily, socket
+
+AF_UNIX = None
+try:from socket import AF_UNIX
+except: pass
 
 import json
 import inspect
@@ -28,11 +33,12 @@ def rpc(instance: 'AioRpcServer', name):
 
 class AioRpcServer(AioRpcBase):
     
-    def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0') -> None:
         ''''''
         super().__init__()
-        self.root = root
+        self.root = Path(root)
         self.name = name
+        self.root.mkdir(parents=True, exist_ok=True)
 
         self.msg_handlers = {
             MsgType.Func: self._handle_msg__Func,
@@ -51,8 +57,24 @@ class AioRpcServer(AioRpcBase):
             loop = asyncio.get_event_loop()
         self.loop = loop
         print('IO Process'.center(50, '='))
+
+        try:
+            # delete the old socket file
+            filename = self.root/(self.name+'.json')
+            if filename.exists():
+                with open(filename, 'r') as f:
+                    info = json.load(f)
+                    info = info[self.name]
+                addr = info['addr']
+                family = info['family']
+                family = AddressFamily[family]
+                if family is AF_UNIX and Path(addr).exists():
+                    os.unlink(addr)
+        except:
+            pass
+
         
-        lsock, addr, port = build_socket()
+        lsock, addr = build_socket(uds_root=self.root)
         print('lsock', lsock)
         loop.create_task(self._start_listening(lsock, self._on_acception))
         filename = self.root/(self.name+'.json')
@@ -60,10 +82,10 @@ class AioRpcServer(AioRpcBase):
             json.dump({
                 self.name: {
                     'addr': addr,
-                    'port': port
+                    'family': lsock.family.name
                 }
             }, f)
-        print(f'Server [{self.name}]: {addr}:{port}')
+        print(f'Server [{self.name}]: {addr}')
         print('IO Process'.center(50, '-'))
 
 
@@ -149,7 +171,6 @@ class AioRpcServer(AioRpcBase):
             ssock, _ = await loop.sock_accept(lsock)
             print('sscok', ssock)
             ssock = AioSock(ssock, 4)
-            self.ssock = ssock
             
             if callback_accept is not None:
                 if inspect.iscoroutinefunction(callback_accept):
