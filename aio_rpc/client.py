@@ -6,10 +6,10 @@ import json
 
 from aiosock import AioSock
 from .utils import build_socket, MsgType
-from .node import AioRpcNode
+from .base import AioRpcBase
 
 
-class AioRpcClient(AioRpcNode):
+class AioRpcClient(AioRpcBase):
     csock: AioSock = None
 
     def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:

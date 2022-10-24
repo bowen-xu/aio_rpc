@@ -9,7 +9,7 @@ import asyncio
 
 from aiosock import AioSock
 from .utils import build_socket, MsgType
-from .node import AioRpcNode
+from .base import AioRpcBase
 
 
 def rpc(instance: 'AioRpcServer', name):
@@ -20,7 +20,7 @@ def rpc(instance: 'AioRpcServer', name):
     return my_decorator
 
 
-class AioRpcServer(AioRpcNode):
+class AioRpcServer(AioRpcBase):
     
     def __init__(self, root=Path('cache/io_process/'), name='IOP0') -> None:
         ''''''

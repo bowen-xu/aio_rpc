@@ -2,7 +2,7 @@
 from multiprocessing import Process
 import asyncio
 
-class AioRpcNode(Process):
+class AioRpcBase(Process):
     def __init__(self) -> None:
         super().__init__()
 
