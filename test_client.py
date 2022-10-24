@@ -12,10 +12,15 @@ client = AioRpcClient()
 client.init()
 
 def main():
-    client.call(1, callback)
+    client.call_func(1, callback)
+
+async def main2():
+    s = await client.async_call_func(1)
+    print('async', s)
 
 loop = asyncio.get_event_loop()
 loop.call_soon(main)
+loop.create_task(main2())
 loop.run_forever()
 # n = 100000
 # t1 = time()

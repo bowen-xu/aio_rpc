@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Tuple, Any, Coroutine
+from typing import Callable, Dict, Tuple, Any, Coroutine, Awaitable
 from pathlib import Path
 from socket import socket
 
@@ -10,11 +10,17 @@ import asyncio
 from aiosock import AioSock
 from .utils import build_socket, MsgType
 from .base import AioRpcBase
+from uuid import uuid1, uuid4
 
 
 def rpc(instance: 'AioRpcServer', name):
-    def my_decorator(func):
-        instance.add(func, name)
+    def my_decorator(func: 'Callable|Awaitable'):
+        if inspect.iscoroutinefunction(func):
+            instance.add_async(func, name)
+        elif inspect.isfunction(func):
+            instance.add(func, name)
+        elif inspect.isclass(func):
+            instance.add_class(func, name)
         return func
 
     return my_decorator
@@ -27,10 +33,14 @@ class AioRpcServer(AioRpcBase):
         super().__init__()
         self.root = root
         self.name = name
-        # self.callback_accept = callback_accept
 
-        self.funcs = {}
-        self.func_coros = {}
+        self.msg_handlers = {
+            MsgType.Func: self._handle_msg__Func,
+            MsgType.AsyncFunc: self._handle_msg__AsyncFunc,
+            MsgType.Method: self._handle_msg__Method,
+            MsgType.AsyncMethod: self._handle_msg__AsyncMethod,
+            MsgType.Class: self._handle_msg__Class
+        }
 
 
     def init(self):
@@ -39,7 +49,7 @@ class AioRpcServer(AioRpcBase):
         except:
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
             loop = asyncio.get_event_loop()
-
+        self.loop = loop
         print('IO Process'.center(50, '='))
         
         lsock, addr, port = build_socket()
@@ -64,23 +74,68 @@ class AioRpcServer(AioRpcBase):
 
     def add_async(self, func_coro, name):
         ''''''
-        self.func_coros[name] = func_coro
+        self.func_async[name] = func_coro
 
+
+    def add_class(self, cls, name):
+        ''''''
+        self.classes[name] = cls
 
     def _on_acception(self, ssock: AioSock):
         ssock.init((self._on_sock_recv, ssock))
 
 
+    def _handle_msg__Func(self, data, ssock: AioSock):
+        _, pack_id, name, args = data
+        func = self.funcs.get(name, None)
+        ret = func(*args)
+        if pack_id is not None:
+            ssock.write((MsgType.Return, pack_id, ret))
+
+    def _handle_msg__AsyncFunc(self, data, ssock: AioSock):
+        _, pack_id, name, args = data
+        func_async = self.func_async.get(name, None)
+        async def wrapper(func, args):
+            ret = await func(*args)
+            if pack_id is not None:
+                ssock.write((MsgType.Return, pack_id, ret))
+        self.loop.create_task(wrapper(func_async, args))
+
+    def _handle_msg__Method(self, data, ssock: AioSock):
+        _, pack_id, name_obj, name_method, args = data
+        method = self.funcs.get(name_method, None)
+        obj = self.objs.get(name_obj, None)
+        ret = method(obj, *args)
+        if pack_id is not None:
+            ssock.write((MsgType.Return, pack_id, ret))
+
+    def _handle_msg__AsyncMethod(self, data, ssock: AioSock):
+        _, pack_id, name_obj, name_method, args = data
+        method_async = self.func_async.get(name_method, None)
+        obj = self.objs.get(name_obj, None)
+        async def wrapper(obj, func, args):
+            ret = await func(obj, *args)
+            if pack_id is not None:
+                ssock.write((MsgType.Return, pack_id, ret))
+        self.loop.create_task(wrapper(obj, method_async, args))
+    
+    def _handle_msg__Class(self, data, ssock: AioSock):
+        _, pack_id, name_class, args = data
+        cls = self.classes.get(name_class, None)
+        obj = cls(*args)
+        obj_id = hash((uuid1(), uuid4()))
+        self.objs[obj_id] = obj
+
+        if pack_id is not None:
+            ssock.write((MsgType.Return, pack_id, obj_id))
+
     def _on_sock_recv(self, data: Tuple[MsgType, int, Any, Tuple], ssock: AioSock):
         ''''''
-        msg_type, pack_id, name, args = data
-        if msg_type is MsgType.Call:
-            func = self.funcs.get(name, None)
-            ret = func(*args)
-            if pack_id is not None:
-                ssock.write((MsgType.Retn, pack_id, ret))
-                # print('write to client')
-
+        msg_type = data[0]
+        msg_handler = self.msg_handlers.get(msg_type, None)
+        if msg_handler is not None:
+            msg_handler(data, ssock)
+            
 
     async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine'=None):
         ''''''
@@ -104,6 +159,11 @@ class AioRpcServer(AioRpcBase):
                 else:
                     raise TypeError('callback_accept类型错误')
 
+    def run(self) -> None:
+        ''''''
+        self.init()
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
 
 
 if __name__ == '__main__':

@@ -9,9 +9,12 @@ except: pass
 
 
 class MsgType(Enum):
-    Call = 'Call a function'
-    Coro = 'Call a coroutine'
-    Retn = 'Return value'
+    Func = 'Call a function'
+    AsyncFunc = 'Call a asynchronous function'
+    Method = 'Call a method'
+    AsyncMethod = 'Call a asynchronous method'
+    Class = 'Instantiate a class'
+    Return = 'Return value'
 
 
 def build_socket(family=None, type=SOCK_STREAM, proto=0) -> Tuple[socket, str, str]:
