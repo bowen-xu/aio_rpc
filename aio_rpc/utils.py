@@ -26,6 +26,7 @@ def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[
     '''
     if family is None:
         try:
+            global AF_UNIX
             family = AF_UNIX
         except NameError:
             family = AF_INET
