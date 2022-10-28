@@ -1,6 +1,7 @@
 
 from multiprocessing import Process
 import asyncio
+from pathlib import Path
 from typing import Callable, Dict
 from uuid import uuid1, uuid4
 
@@ -30,10 +31,17 @@ class AioRpcBase(Process):
         loop.run_forever()
 
     
-    def _get_pack_id(self, callback):
+    def _new_pack_id(self, callback):
         if callback is not None:
             pack_id = hash((uuid1(), uuid4()))
             self.callbacks[pack_id] = callback
         else: 
             pack_id = None
         return pack_id
+
+
+    def reset(self, root='cache/io_process/', name='IOP0'):
+        ''''''
+        self.root = Path(root)
+        self.name = name
+        self.root.mkdir(parents=True, exist_ok=True)

@@ -36,9 +36,7 @@ class AioRpcServer(AioRpcBase):
     def __init__(self, root='cache/io_process/', name='IOP0') -> None:
         ''''''
         super().__init__()
-        self.root = Path(root)
-        self.name = name
-        self.root.mkdir(parents=True, exist_ok=True)
+        self.reset(root, name)
 
         self.msg_handlers = {
             MsgType.Func: self._handle_msg__Func,

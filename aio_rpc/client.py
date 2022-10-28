@@ -35,12 +35,10 @@ class AioRpcClient(AioRpcBase):
     def __init__(self, root='cache/io_process/', name='IOP0') -> None:
         ''''''
         super().__init__()
-        self.root = Path(root)
-        self.name = name
-        # self.callback_accept = callback_accept
-        self.root.mkdir(parents=True, exist_ok=True)
+        self.reset(root, name)
+        
 
-    def init(self):
+    def init(self, callback: Callable=None):
         filename = self.root/(self.name+'.json')
         with open(filename, 'r') as f:
             info = json.load(f)
@@ -61,11 +59,13 @@ class AioRpcClient(AioRpcBase):
         self.csock = csock
 
         csock.init(self._on_sock_recv)
+        if callback is not None:
+            callback()
 
 
     def call_func(self, name_func, callback, *args):
         ''''''
-        pack_id = self._get_pack_id(callback)
+        pack_id = self._new_pack_id(callback)
         
         self.csock.write((MsgType.Func, pack_id, name_func, args))
 
@@ -77,7 +77,7 @@ class AioRpcClient(AioRpcBase):
 
     def call_async_func(self, name_func, callback, *args):
         ''''''
-        pack_id = self._get_pack_id(callback)
+        pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.AsyncFunc, pack_id, name_func, args))
 
 
@@ -88,7 +88,7 @@ class AioRpcClient(AioRpcBase):
     
     def call_method(self, name_self, name_method, callback, *args):
         ''''''
-        pack_id = self._get_pack_id(callback)
+        pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.Method, pack_id, name_self, name_method, args))
 
 
@@ -99,7 +99,7 @@ class AioRpcClient(AioRpcBase):
 
     def call_async_method(self, name_self, name_method, callback, *args):
         ''''''
-        pack_id = self._get_pack_id(callback)
+        pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.AsyncMethod, pack_id, name_self, name_method, args))
 
     
@@ -112,12 +112,12 @@ class AioRpcClient(AioRpcBase):
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
-        pack_id = self._get_pack_id(callback)
+        pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.Class, pack_id, name_class, args))
 
 
     @_asynchronify(instantiate, 1)
-    async def async_instantiate(self, name_class, *args):
+    async def async_instantiate(self, name_class, *args) -> int:
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
@@ -129,6 +129,7 @@ class AioRpcClient(AioRpcBase):
         msg_type = data[0]
         if msg_type is MsgType.Return:
             _, pack_id, ret = data
-            callback = self.callbacks[pack_id]
-            callback(ret)
+            callback = self.callbacks.pop(pack_id, None)
+            if callback is not None:
+                callback(ret)
 

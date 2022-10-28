@@ -28,9 +28,10 @@ def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[
         try:
             global AF_UNIX
             family = AF_UNIX
+            _AF_UNIX = AF_UNIX
         except NameError:
             family = AF_INET
-            AF_UNIX = None
+            _AF_UNIX = None
     lsock = socket(family, type, proto)
 
     if family in (AF_INET, AF_INET6):    
@@ -42,7 +43,7 @@ def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[
         # On IPv6, ignore flow_info and scope_id
         host, port = lsock.getsockname()[:2]
         addr = (host, port)
-    elif family == AF_UNIX:
+    elif family == _AF_UNIX:
         if uds_root is Ellipsis:
             uds_root = './'
         if uds_root is not None:
