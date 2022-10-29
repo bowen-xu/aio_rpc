@@ -6,6 +6,7 @@ server = AioRpcServer()
 @rpc(server, "test")
 def print_test(content):
     print("hello world!", content)
+    return str(content)
 
 
 @rpc(server, 0)

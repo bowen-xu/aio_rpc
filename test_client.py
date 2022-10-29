@@ -1,6 +1,7 @@
 
+from pydoc import cli
 from aiosock import asyncio
-from aio_rpc import AioRpcClient
+from aio_rpc import AioRpcClient, RpcServerObject
 from time import time
 import aiosock
 
@@ -11,8 +12,10 @@ client = AioRpcClient()
 
 client.init()
 
+
 def main():
     client.call_func(1, callback)
+    client.call_func("test", callback, RpcServerObject(client.id))
 
 async def main2():
     s = await client.async_call_func(1)

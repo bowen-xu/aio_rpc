@@ -14,11 +14,10 @@ import asyncio
 
 from aiosock import AioSock
 from .utils import build_socket, MsgType
-from .base import AioRpcBase
-from uuid import uuid1, uuid4
+from .base import AioRpcBase, _asynchronify
 
 
-def rpc(instance: 'AioRpcServer', name):
+def rpc(instance: 'AioRpcBase', name):
     def my_decorator(func: 'Callable|Awaitable'):
         if inspect.iscoroutinefunction(func):
             instance.add_async(func, name)
@@ -38,13 +37,9 @@ class AioRpcServer(AioRpcBase):
         super().__init__()
         self.reset(root, name)
 
-        self.msg_handlers = {
-            MsgType.Func: self._handle_msg__Func,
-            MsgType.AsyncFunc: self._handle_msg__AsyncFunc,
-            MsgType.Method: self._handle_msg__Method,
-            MsgType.AsyncMethod: self._handle_msg__AsyncMethod,
-            MsgType.Class: self._handle_msg__Class
-        }
+        self.clients: Dict[int, AioSock] = {}
+        self.msg_handlers[MsgType.Init] = self._handle_msg__Init
+        RpcServerObject.server = self
 
 
     def init(self):
@@ -87,75 +82,9 @@ class AioRpcServer(AioRpcBase):
         print('IO Process'.center(50, '-'))
 
 
-    def add(self, func, name):
-        ''''''
-        self.funcs[name] = func
-    
-
-    def add_async(self, func_coro, name):
-        ''''''
-        self.func_async[name] = func_coro
-
-
-    def add_class(self, cls, name):
-        ''''''
-        self.classes[name] = cls
-
     def _on_acception(self, ssock: AioSock):
         ssock.init((self._on_sock_recv, ssock))
 
-
-    def _handle_msg__Func(self, data, ssock: AioSock):
-        _, pack_id, name, args = data
-        func = self.funcs.get(name, None)
-        ret = func(*args)
-        if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, ret))
-
-    def _handle_msg__AsyncFunc(self, data, ssock: AioSock):
-        _, pack_id, name, args = data
-        func_async = self.func_async.get(name, None)
-        async def wrapper(func, args):
-            ret = await func(*args)
-            if pack_id is not None:
-                ssock.write((MsgType.Return, pack_id, ret))
-        self.loop.create_task(wrapper(func_async, args))
-
-    def _handle_msg__Method(self, data, ssock: AioSock):
-        _, pack_id, name_obj, name_method, args = data
-        method = self.funcs.get(name_method, None)
-        obj = self.objs.get(name_obj, None)
-        ret = method(obj, *args)
-        if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, ret))
-
-    def _handle_msg__AsyncMethod(self, data, ssock: AioSock):
-        _, pack_id, name_obj, name_method, args = data
-        method_async = self.func_async.get(name_method, None)
-        obj = self.objs.get(name_obj, None)
-        async def wrapper(obj, func, args):
-            ret = await func(obj, *args)
-            if pack_id is not None:
-                ssock.write((MsgType.Return, pack_id, ret))
-        self.loop.create_task(wrapper(obj, method_async, args))
-    
-    def _handle_msg__Class(self, data, ssock: AioSock):
-        _, pack_id, name_class, args = data
-        cls = self.classes.get(name_class, None)
-        obj = cls(*args)
-        obj_id = hash((uuid1(), uuid4()))
-        self.objs[obj_id] = obj
-
-        if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, obj_id))
-
-    def _on_sock_recv(self, data: Tuple[MsgType, int, Any, Tuple], ssock: AioSock):
-        ''''''
-        msg_type = data[0]
-        msg_handler = self.msg_handlers.get(msg_type, None)
-        if msg_handler is not None:
-            msg_handler(data, ssock)
-            
 
     async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine'=None):
         ''''''
@@ -178,12 +107,106 @@ class AioRpcServer(AioRpcBase):
                 else:
                     raise TypeError('callback_accept类型错误')
 
+    def _handle_msg__Init(self, data, ssock: AioSock):
+        ''''''
+        _, pack_id, client_id = data
+        self.clients[client_id] = ssock
+        self.objs[client_id] = ssock
+        ret = self.id
+        if pack_id is not None:
+            ssock.write((MsgType.Return, pack_id, ret))
+
+
+    def call_func(self, client_id, name_func, callback, *args):
+        ''''''
+        ssock = self.clients.get(client_id)
+        if ssock is None: return
+        pack_id = self._new_pack_id(callback)        
+        ssock.write((MsgType.Func, pack_id, name_func, args))
+
+
+    @_asynchronify(call_func, 1)
+    async def async_call_func(self, client_id, name_func, *args):
+        ''''''
+        
+
+    def call_async_func(self, client_id, name_func, callback, *args):
+        ''''''
+        ssock = self.clients.get(client_id)
+        if ssock is None: return
+        pack_id = self._new_pack_id(callback)
+        ssock.write((MsgType.AsyncFunc, pack_id, name_func, args))
+
+
+    @_asynchronify(call_async_func, 1)
+    async def async_call_async_func(self, client_id, name_func, *args):
+        ''''''
+
+    
+    def call_method(self, client_id, name_self, name_method, callback, *args):
+        ''''''
+        ssock = self.clients.get(client_id)
+        if ssock is None: return
+        pack_id = self._new_pack_id(callback)
+        ssock.write((MsgType.Method, pack_id, name_self, name_method, args))
+
+
+    @_asynchronify(call_method, 2)
+    async def async_call_method(self, client_id, name_self, name_method, *args):
+        ''''''
+
+
+    def call_async_method(self, client_id, name_self, name_method, callback, *args):
+        ''''''
+        ssock = self.clients.get(client_id)
+        if ssock is None: return
+        pack_id = self._new_pack_id(callback)
+        ssock.write((MsgType.AsyncMethod, pack_id, name_self, name_method, args))
+
+
+    @_asynchronify(call_async_method, 2)
+    async def async_call_async_method(self, client_id, name_self, name_method, *args):
+        ''''''
+
+
+    def instantiate(self, client_id, name_class, callback, *args):
+        '''
+        create a new instance, e.g., a instance of a class, a number, and so on.
+        '''
+        ssock = self.clients.get(client_id)
+        if ssock is None: return
+        pack_id = self._new_pack_id(callback)
+        ssock.write((MsgType.Class, pack_id, name_class, args))
+
+
+    @_asynchronify(instantiate, 1)
+    async def async_instantiate(self, client_id, name_class, *args) -> int:
+        '''
+        create a new instance, e.g., a instance of a class, a number, and so on.
+        '''
+
+
     def run(self) -> None:
         ''''''
         self.init()
         loop = asyncio.get_event_loop()
         loop.run_forever()
 
+
+class RpcServerObject:
+    server: AioRpcServer=None
+    def __init__(self, _id):
+        self._id = _id
+
+    @classmethod
+    def get_obj(cls, _id):
+        ''''''
+        if cls.server is None: return None
+        else: return cls.server.objs.get(_id)
+    
+    def __reduce__(self):
+        return (RpcServerObject.get_obj, (self._id, ))
+        
 
 if __name__ == '__main__':
     root = Path('cache/io_process/')

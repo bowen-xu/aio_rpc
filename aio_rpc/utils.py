@@ -18,6 +18,7 @@ class MsgType(Enum):
     AsyncMethod = 'Call a asynchronous method'
     Class = 'Instantiate a class'
     Return = 'Return value'
+    Init = "Init"
 
 
 def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[socket, str, str]:
@@ -58,5 +59,3 @@ def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[
         raise TypeError('family type error!')
 
     return lsock, addr
-
-

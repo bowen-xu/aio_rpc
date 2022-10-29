@@ -8,26 +8,9 @@ import json
 
 from aiosock import AioSock
 from .utils import build_socket, MsgType
-from .base import AioRpcBase
+from .base import AioRpcBase, _asynchronify
 
-def _asynchronify(_call, pos_callback):
-    ''''''
-    def wrapper(_func):
-        ''''''
-        async def async_call(self, *args):
-            event = Event()
-            event.clear()
-            obj_id = None
-            def callback(_obj_id):
-                ''''''
-                nonlocal obj_id
-                obj_id = _obj_id
-                event.set()
-            _call(self, *args[:pos_callback], callback, *args[pos_callback:])
-            await event.wait()
-            return obj_id
-        return async_call
-    return wrapper
+
 
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
@@ -36,6 +19,7 @@ class AioRpcClient(AioRpcBase):
         ''''''
         super().__init__()
         self.reset(root, name)
+        self.server_id = None
         
 
     def init(self, callback: Callable=None):
@@ -58,10 +42,18 @@ class AioRpcClient(AioRpcBase):
         csock = AioSock(csock, 4)
         self.csock = csock
 
-        csock.init(self._on_sock_recv)
+        csock.init((self._on_sock_recv, csock))
+        self._handshake()
         if callback is not None:
             callback()
 
+    def _handshake(self):
+        ''''''
+        def callback(_id):
+            ''''''
+            self.server_id = _id
+        pack_id = self._new_pack_id(callback)
+        self.csock.write((MsgType.Init, pack_id, self.id))
 
     def call_func(self, name_func, callback, *args):
         ''''''
@@ -121,15 +113,3 @@ class AioRpcClient(AioRpcBase):
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
-
-
-
-    def _on_sock_recv(self, data: Tuple[MsgType, int, Tuple]):
-        ''''''
-        msg_type = data[0]
-        if msg_type is MsgType.Return:
-            _, pack_id, ret = data
-            callback = self.callbacks.pop(pack_id, None)
-            if callback is not None:
-                callback(ret)
-
