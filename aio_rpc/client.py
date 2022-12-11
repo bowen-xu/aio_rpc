@@ -1,5 +1,5 @@
 from asyncio import Event
-from socket import AF_INET, AF_INET6, AddressFamily
+from socket import AF_INET, AF_INET6, AddressFamily, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF
 from typing import Callable, Dict, Tuple
 from pathlib import Path
 import uuid
@@ -15,11 +15,12 @@ from .base import AioRpcBase, _asynchronify
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
 
-    def __init__(self, root='cache/io_process/', name='IOP0') -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535) -> None:
         ''''''
         super().__init__()
         self.reset(root, name)
         self.server_id = None
+        self.buff = buff
         
 
     def init(self, callback: Callable=None):
@@ -35,6 +36,8 @@ class AioRpcClient(AioRpcBase):
         
         csock, *_ = build_socket(uds_root=None)
         csock.setblocking(True)
+        csock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
+        csock.setsockopt(SOL_SOCKET, SO_SNDBUF, self.buff)
 
         print('connecting...')
         csock.connect(addr)

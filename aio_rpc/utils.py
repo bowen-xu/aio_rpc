@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, Tuple
 from _socket import *
-from socket import socket
+from socket import socket, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF
 
 _LOCALHOST    = '127.0.0.1'
 _LOCALHOST_V6 = '::1'
@@ -34,7 +34,6 @@ def build_socket(family=None, type=SOCK_STREAM, proto=0, uds_root=...) -> Tuple[
             family = AF_INET
             _AF_UNIX = None
     lsock = socket(family, type, proto)
-
     if family in (AF_INET, AF_INET6):    
         if family == AF_INET:
             host = _LOCALHOST

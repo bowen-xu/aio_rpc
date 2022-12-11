@@ -1,7 +1,7 @@
 import os
 from typing import Callable, Dict, Tuple, Any, Coroutine, Awaitable
 from pathlib import Path
-from socket import AddressFamily, socket
+from socket import AddressFamily, socket, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF
 
 AF_UNIX = None
 try:from socket import AF_UNIX
@@ -32,7 +32,7 @@ def rpc(instance: 'AioRpcBase', name):
 
 class AioRpcServer(AioRpcBase):
     
-    def __init__(self, root='cache/io_process/', name='IOP0') -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535) -> None:
         ''''''
         super().__init__()
         self.reset(root, name)
@@ -40,6 +40,8 @@ class AioRpcServer(AioRpcBase):
         self.clients: Dict[int, AioSock] = {}
         self.msg_handlers[MsgType.Init] = self._handle_msg__Init
         RpcServerObject.server = self
+        
+        self.buff = buff
 
 
     def init(self):
@@ -68,6 +70,9 @@ class AioRpcServer(AioRpcBase):
 
         
         lsock, addr = build_socket(uds_root=self.root)
+        lsock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
+        lsock.setsockopt(SOL_SOCKET, SO_SNDBUF, self.buff)
+        
         print('lsock', lsock)
         loop.create_task(self._start_listening(lsock, self._on_acception))
         filename = self.root/(self.name+'.json')
