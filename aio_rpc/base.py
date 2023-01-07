@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Tuple
 from uuid import uuid1, uuid4
 from aiosock import AioSock
 from .utils import MsgType  
+import traceback
 
 def _asynchronify(_call, pos_callback):
     ''''''
@@ -16,9 +17,11 @@ def _asynchronify(_call, pos_callback):
             event = Event()
             event.clear()
             obj_id = None
-            def callback(_obj_id):
+            def callback(data):
                 ''''''
                 nonlocal obj_id
+                _obj_id, err = data
+                if err: raise err
                 obj_id = _obj_id
                 event.set()
             _call(self, *args[:pos_callback], callback, *args[pos_callback:])
@@ -67,58 +70,103 @@ class AioRpcBase(Process):
     def _handle_msg__Func(self, data, ssock: AioSock):
         _, pack_id, name, args = data
         func = self.funcs.get(name, None)
-        ret = func(*args)
+        try:
+            ret = func(*args)
+        except:
+            e = Exception(traceback.format_exc())
+            if pack_id is not None:
+                ssock.write((MsgType.Return, pack_id, (None, e)))
+            return
         if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, ret))
+            ssock.write((MsgType.Return, pack_id, (ret, None)))
 
 
     def _handle_msg__AsyncFunc(self, data, ssock: AioSock):
         _, pack_id, name, args = data
         func_async = self.func_async.get(name, None)
         async def wrapper(func, args):
-            ret = await func(*args)
+            try:
+                ret = await func(*args)
+            except:
+                e = Exception(traceback.format_exc())
+                if pack_id is not None:
+                    ssock.write((MsgType.Return, pack_id, (None, e)))
+                return
             if pack_id is not None:
-                ssock.write((MsgType.Return, pack_id, ret))
+                ssock.write((MsgType.Return, pack_id, (ret, None)))
         self.loop.create_task(wrapper(func_async, args))
 
 
     def _handle_msg__Method(self, data, ssock: AioSock):
         _, pack_id, name_obj, name_method, args = data
         method = self.funcs.get(name_method, None)
+        if method is None:
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            return
         obj = self.objs.get(name_obj, None)
-        ret = method(obj, *args)
+        if obj is None:
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            return
+
+        try:
+            ret = method(obj, *args)
+        except:
+            e = Exception(traceback.format_exc())
+            if pack_id is not None:
+                ssock.write((MsgType.Return, pack_id, (None, e)))
+            return
         if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, ret))
+            ssock.write((MsgType.Return, pack_id, (ret, None)))
 
 
     def _handle_msg__AsyncMethod(self, data, ssock: AioSock):
         _, pack_id, name_obj, name_method, args = data
         method_async = self.func_async.get(name_method, None)
+        if method_async is None:
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            return
         obj = self.objs.get(name_obj, None)
+        if obj is None:
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            return
+
         async def wrapper(obj, func, args):
-            ret = await func(obj, *args)
+            try:
+                ret = await func(obj, *args)
+            except:
+                e = Exception(traceback.format_exc())
+                if pack_id is not None:
+                    ssock.write((MsgType.Return, pack_id, (None, e)))
+                return
             if pack_id is not None:
-                ssock.write((MsgType.Return, pack_id, ret))
+                ssock.write((MsgType.Return, pack_id, (ret, None)))
         self.loop.create_task(wrapper(obj, method_async, args))
 
 
     def _handle_msg__Class(self, data, ssock: AioSock):
         _, pack_id, name_class, args = data
-        cls = self.classes.get(name_class, None)
-        obj = cls(*args)
-        obj_id = hash((uuid1(), uuid4()))
-        self.objs[obj_id] = obj
-
+        try:
+            cls = self.classes.get(name_class, None)
+            obj = cls(*args)
+            obj_id = hash((uuid1(), uuid4()))
+            self.objs[obj_id] = obj
+        except:
+            e = Exception(traceback.format_exc())
+            if pack_id is not None:
+                ssock.write((MsgType.Return, pack_id, (None, e)))
+            return
         if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, obj_id))
+            ssock.write((MsgType.Return, pack_id, (obj_id, None)))
 
 
     def _handle_msg__Return(self, data, ssock: AioSock):
-        _, pack_id, ret = data
+        _, pack_id, (ret, err) = data
         if pack_id is None: return
         callback = self.callbacks.pop(pack_id, None)
+        # if err is not None and callback_err is not None:
+        #     callback_err(err)
         if callback is not None:
-            callback(ret)
+            callback((ret, err))
 
 
     def run(self) -> None:
@@ -128,7 +176,7 @@ class AioRpcBase(Process):
         loop.run_forever()
 
 
-    def _new_pack_id(self, callback):
+    def _new_pack_id(self, callback, callback_err=None):
         if callback is not None:
             pack_id = hash((uuid1(), uuid4()))
             self.callbacks[pack_id] = callback

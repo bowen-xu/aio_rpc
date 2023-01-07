@@ -119,7 +119,7 @@ class AioRpcServer(AioRpcBase):
         self.objs[client_id] = ssock
         ret = self.id
         if pack_id is not None:
-            ssock.write((MsgType.Return, pack_id, ret))
+            ssock.write((MsgType.Return, pack_id, (ret, None)))
 
 
     def call_func(self, client_id, name_func, callback, *args):
