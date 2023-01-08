@@ -54,7 +54,10 @@ class AioRpcClient(AioRpcBase):
         ''''''
         def callback(_id):
             ''''''
-            self.server_id = _id
+            self.server_id, err = _id
+            if err:
+                raise Exception("Handshake Error: Client RPC cannot connect to Server RPC correctly.")
+            self.init_ok.set()
         pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.Init, pack_id, self.id))
 

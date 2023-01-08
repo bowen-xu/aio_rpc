@@ -55,6 +55,10 @@ class AioRpcBase(Process):
         self.id = hash((uuid1(), uuid4()))
         self.objs[self.id] = self
 
+        self.init_ok = Event()
+        self.init_ok.clear()
+
+
     def init(self):
         raise NotImplementedError()
 

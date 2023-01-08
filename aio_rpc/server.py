@@ -86,6 +86,8 @@ class AioRpcServer(AioRpcBase):
         print(f'Server [{self.name}]: {addr}')
         print('IO Process'.center(50, '-'))
 
+        self.init_ok.set()
+
 
     def _on_acception(self, ssock: AioSock):
         ssock.init((self._on_sock_recv, ssock))
