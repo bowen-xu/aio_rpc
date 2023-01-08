@@ -118,6 +118,8 @@ class AioRpcBase(Process):
             e = Exception(traceback.format_exc())
             if pack_id is not None:
                 ssock.write((MsgType.Return, pack_id, (None, e)))
+            else:
+                print(e)
             return
         if pack_id is not None:
             ssock.write((MsgType.Return, pack_id, (ret, None)))
