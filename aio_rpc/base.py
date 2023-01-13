@@ -76,8 +76,8 @@ class AioRpcBase(Process):
         func = self.funcs.get(name, None)
         try:
             ret = func(*args)
-        except:
-            e = Exception(traceback.format_exc())
+        except Exception as e:
+            e.args = tuple((*e.args, ('traceback', traceback.format_exc())))
             if pack_id is not None:
                 ssock.write((MsgType.Return, pack_id, (None, e)))
             return
@@ -91,8 +91,8 @@ class AioRpcBase(Process):
         async def wrapper(func, args):
             try:
                 ret = await func(*args)
-            except:
-                e = Exception(traceback.format_exc())
+            except Exception as e:
+                e.args = tuple((*e.args, ('traceback', traceback.format_exc())))
                 if pack_id is not None:
                     ssock.write((MsgType.Return, pack_id, (None, e)))
                 return
@@ -114,8 +114,8 @@ class AioRpcBase(Process):
 
         try:
             ret = method(obj, *args)
-        except:
-            e = Exception(traceback.format_exc())
+        except Exception as e:
+            e.args = tuple((*e.args, ('traceback', traceback.format_exc())))
             if pack_id is not None:
                 ssock.write((MsgType.Return, pack_id, (None, e)))
             else:
@@ -139,8 +139,8 @@ class AioRpcBase(Process):
         async def wrapper(obj, func, args):
             try:
                 ret = await func(obj, *args)
-            except:
-                e = Exception(traceback.format_exc())
+            except Exception as e:
+                e.args = tuple((*e.args, ('traceback', traceback.format_exc())))
                 if pack_id is not None:
                     ssock.write((MsgType.Return, pack_id, (None, e)))
                 return
@@ -156,8 +156,8 @@ class AioRpcBase(Process):
             obj = cls(*args)
             obj_id = hash((uuid1(), uuid4()))
             self.objs[obj_id] = obj
-        except:
-            e = Exception(traceback.format_exc())
+        except Exception as e:
+            e.args = tuple((*e.args, ('traceback', traceback.format_exc())))
             if pack_id is not None:
                 ssock.write((MsgType.Return, pack_id, (None, e)))
             return
