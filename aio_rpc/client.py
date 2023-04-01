@@ -15,12 +15,13 @@ from .base import AioRpcBase, _asynchronify
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
 
-    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535) -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535, mark=None) -> None:
         ''''''
         super().__init__()
         self.reset(root, name)
         self.server_id = None
         self.buff = buff
+        self.mark = mark
         
 
     def init(self, callback: Callable=None):
@@ -59,7 +60,7 @@ class AioRpcClient(AioRpcBase):
                 raise Exception("Handshake Error: Client RPC cannot connect to Server RPC correctly.")
             self.init_ok.set()
         pack_id = self._new_pack_id(callback)
-        self.csock.write((MsgType.Init, pack_id, self.id))
+        self.csock.write((MsgType.Init, pack_id, self.id, self.mark))
 
     def call_func(self, name_func, callback, *args):
         ''''''

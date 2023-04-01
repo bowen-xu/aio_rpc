@@ -32,7 +32,7 @@ def rpc(instance: 'AioRpcBase', name):
 
 class AioRpcServer(AioRpcBase):
     
-    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535) -> None:
+    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535, on_handshake: Callable[[int, str], None]=None) -> None:
         ''''''
         super().__init__()
         self.reset(root, name)
@@ -43,6 +43,7 @@ class AioRpcServer(AioRpcBase):
         
         self.buff = buff
 
+        self.on_handshake = on_handshake
 
     def init(self):
         try:
@@ -116,12 +117,14 @@ class AioRpcServer(AioRpcBase):
 
     def _handle_msg__Init(self, data, ssock: AioSock):
         ''''''
-        _, pack_id, client_id = data
+        _, pack_id, client_id, mark = data
         self.clients[client_id] = ssock
         self.objs[client_id] = ssock
         ret = self.id
         if pack_id is not None:
             ssock.write((MsgType.Return, pack_id, (ret, None)))
+        if self.on_handshake is not None:
+            self.on_handshake(client_id, mark)
 
 
     def call_func(self, client_id, name_func, callback, *args):
