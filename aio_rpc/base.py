@@ -17,16 +17,23 @@ def _asynchronify(_call, pos_callback):
             event = Event()
             event.clear()
             obj_id = None
+            err = None
             def callback(data):
                 ''''''
                 nonlocal obj_id
+                nonlocal err
+                nonlocal event
+                obj_id, err = data
                 _obj_id, err = data
-                if err: raise err
-                obj_id = _obj_id
+                # if err: 
+                #     raise err
                 event.set()
+                obj_id = _obj_id
             _call(self, *args[:pos_callback], callback, *args[pos_callback:])
             await event.wait()
-            return obj_id
+            if err:
+                raise err
+            return obj_id, err
         return async_call
     return wrapper
     
@@ -105,11 +112,11 @@ class AioRpcBase(Process):
         _, pack_id, name_obj, name_method, args = data
         method = self.funcs.get(name_method, None)
         if method is None:
-            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the method is registered."))))
             return
         obj = self.objs.get(name_obj, None)
         if obj is None:
-            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the method is registered."))))
             return
 
         try:
@@ -129,11 +136,11 @@ class AioRpcBase(Process):
         _, pack_id, name_obj, name_method, args = data
         method_async = self.func_async.get(name_method, None)
         if method_async is None:
-            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: method unfound. Please ensure that the server/clinet has been fully initialized and the method is registered."))))
             return
         obj = self.objs.get(name_obj, None)
         if obj is None:
-            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the methed is registered."))))
+            ssock.write((MsgType.Return, pack_id, (None, Exception("RPC call aync methoed error: object unfound. Please ensure that the server/clinet has been fully initialized and the method is registered."))))
             return
 
         async def wrapper(obj, func, args):

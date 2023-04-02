@@ -161,7 +161,7 @@ class AioRpcServer(AioRpcBase):
         ssock.write((MsgType.Method, pack_id, name_self, name_method, args))
 
 
-    @_asynchronify(call_method, 2)
+    @_asynchronify(call_method, 3)
     async def async_call_method(self, client_id, name_self, name_method, *args):
         ''''''
 
@@ -174,7 +174,7 @@ class AioRpcServer(AioRpcBase):
         ssock.write((MsgType.AsyncMethod, pack_id, name_self, name_method, args))
 
 
-    @_asynchronify(call_async_method, 2)
+    @_asynchronify(call_async_method, 3)
     async def async_call_async_method(self, client_id, name_self, name_method, *args):
         ''''''
 
@@ -189,7 +189,7 @@ class AioRpcServer(AioRpcBase):
         ssock.write((MsgType.Class, pack_id, name_class, args))
 
 
-    @_asynchronify(instantiate, 1)
+    @_asynchronify(instantiate, 2)
     async def async_instantiate(self, client_id, name_class, *args) -> int:
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
@@ -219,7 +219,7 @@ class RpcServerObject:
         
 
 if __name__ == '__main__':
-    root = Path('cache/io_process/')
+    root = Path('../cache/io_process/')
     root.mkdir(parents=True, exist_ok=True)
     print(f'cache root: {str(root)}')
     server = AioRpcServer(root, 'IOP0')
