@@ -1,20 +1,19 @@
+from .base import AioRpcBase, _asynchronify
+from .utils import build_socket, MsgType
+from aiosock import AioSock
+import asyncio
+import inspect
+import json
 import os
 from typing import Callable, Dict, Tuple, Any, Coroutine, Awaitable
 from pathlib import Path
 from socket import AddressFamily, socket, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF
-
+from .handler import get_handler
 AF_UNIX = None
-try:from socket import AF_UNIX
-except: pass
-
-import json
-import inspect
-
-import asyncio
-
-from aiosock import AioSock
-from .utils import build_socket, MsgType
-from .base import AioRpcBase, _asynchronify
+try:
+    from socket import AF_UNIX
+except:
+    pass
 
 
 def rpc(instance: 'AioRpcBase', name):
@@ -31,8 +30,8 @@ def rpc(instance: 'AioRpcBase', name):
 
 
 class AioRpcServer(AioRpcBase):
-    
-    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535, on_handshake: Callable[[int, str], None]=None) -> None:
+
+    def __init__(self, root='cache/io_process/', name='IOP0', buff=65535, on_handshake: Callable[[int, str], None] = None) -> None:
         ''''''
         super().__init__()
         self.reset(root, name)
@@ -40,7 +39,7 @@ class AioRpcServer(AioRpcBase):
         self.clients: Dict[int, AioSock] = {}
         self.msg_handlers[MsgType.Init] = self._handle_msg__Init
         RpcServerObject.server = self
-        
+
         self.buff = buff
 
         self.on_handshake = on_handshake
@@ -69,11 +68,10 @@ class AioRpcServer(AioRpcBase):
         except:
             pass
 
-        
         lsock, addr = build_socket(uds_root=self.root)
         lsock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
         lsock.setsockopt(SOL_SOCKET, SO_SNDBUF, self.buff)
-        
+
         print('lsock', lsock)
         loop.create_task(self._start_listening(lsock, self._on_acception))
         filename = self.root/(self.name+'.json')
@@ -89,12 +87,10 @@ class AioRpcServer(AioRpcBase):
 
         self.init_ok.set()
 
-
     def _on_acception(self, ssock: AioSock):
         ssock.init((self._on_sock_recv, ssock))
 
-
-    async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine'=None):
+    async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine' = None):
         ''''''
         print('start listening')
         lsock.listen()
@@ -106,7 +102,7 @@ class AioRpcServer(AioRpcBase):
             ssock, _ = await loop.sock_accept(lsock)
             print('sscok', ssock)
             ssock = AioSock(ssock, 4)
-            
+
             if callback_accept is not None:
                 if inspect.iscoroutinefunction(callback_accept):
                     loop.create_task(callback_accept(ssock))
@@ -126,68 +122,64 @@ class AioRpcServer(AioRpcBase):
         if self.on_handshake is not None:
             self.on_handshake(client_id, mark)
 
-
     def call_func(self, client_id, name_func, callback, *args):
         ''''''
         ssock = self.clients.get(client_id)
-        if ssock is None: return
-        pack_id = self._new_pack_id(callback)        
+        if ssock is None:
+            return
+        pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.Func, pack_id, name_func, args))
-
 
     @_asynchronify(call_func, 1)
     async def async_call_func(self, client_id, name_func, *args):
         ''''''
-        
 
     def call_async_func(self, client_id, name_func, callback, *args):
         ''''''
         ssock = self.clients.get(client_id)
-        if ssock is None: return
+        if ssock is None:
+            return
         pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.AsyncFunc, pack_id, name_func, args))
-
 
     @_asynchronify(call_async_func, 1)
     async def async_call_async_func(self, client_id, name_func, *args):
         ''''''
 
-    
     def call_method(self, client_id, name_self, name_method, callback, *args):
         ''''''
         ssock = self.clients.get(client_id)
-        if ssock is None: return
+        if ssock is None:
+            return
         pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.Method, pack_id, name_self, name_method, args))
-
 
     @_asynchronify(call_method, 3)
     async def async_call_method(self, client_id, name_self, name_method, *args):
         ''''''
 
-
     def call_async_method(self, client_id, name_self, name_method, callback, *args):
         ''''''
         ssock = self.clients.get(client_id)
-        if ssock is None: return
+        if ssock is None:
+            return
         pack_id = self._new_pack_id(callback)
-        ssock.write((MsgType.AsyncMethod, pack_id, name_self, name_method, args))
-
+        ssock.write((MsgType.AsyncMethod, pack_id,
+                    name_self, name_method, args))
 
     @_asynchronify(call_async_method, 3)
     async def async_call_async_method(self, client_id, name_self, name_method, *args):
         ''''''
-
 
     def instantiate(self, client_id, name_class, callback, *args):
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
         ssock = self.clients.get(client_id)
-        if ssock is None: return
+        if ssock is None:
+            return
         pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.Class, pack_id, name_class, args))
-
 
     @_asynchronify(instantiate, 2)
     async def async_instantiate(self, client_id, name_class, *args) -> int:
@@ -195,6 +187,18 @@ class AioRpcServer(AioRpcBase):
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
 
+    def get_progress(self, client_id, name, callback):
+        '''
+        get remote progress
+        '''
+        self.call_method(client_id, client_id, get_handler(
+            AioRpcBase._get_local_progress), callback, name)
+
+    async def add_progress(self, client_id, name):
+        '''
+        add remote progress
+        '''
+        return await self.async_call_method(client_id, client_id, get_handler(AioRpcBase._add_local_progress), name)
 
     def run(self) -> None:
         ''''''
@@ -204,19 +208,22 @@ class AioRpcServer(AioRpcBase):
 
 
 class RpcServerObject:
-    server: AioRpcServer=None
+    server: AioRpcServer = None
+
     def __init__(self, _id):
         self._id = _id
 
     @classmethod
     def get_obj(cls, _id):
         ''''''
-        if cls.server is None: return None
-        else: return cls.server.objs.get(_id)
-    
+        if cls.server is None:
+            return None
+        else:
+            return cls.server.objs.get(_id)
+
     def __reduce__(self):
         return (RpcServerObject.get_obj, (self._id, ))
-        
+
 
 if __name__ == '__main__':
     root = Path('../cache/io_process/')

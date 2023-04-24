@@ -9,8 +9,9 @@ import json
 from aiosock import AioSock
 from .utils import build_socket, MsgType
 from .base import AioRpcBase, _asynchronify
-
-
+from .progress import Progress
+from collections import defaultdict
+from .handler import get_handler
 
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
@@ -22,9 +23,9 @@ class AioRpcClient(AioRpcBase):
         self.server_id = None
         self.buff = buff
         self.mark = mark
-        
 
-    def init(self, callback: Callable=None):
+
+    def init(self, callback: Callable = None):
         filename = self.root/(self.name+'.json')
         with open(filename, 'r') as f:
             info = json.load(f)
@@ -32,9 +33,11 @@ class AioRpcClient(AioRpcBase):
         addr = info['addr']
         family = info['family']
         family = AddressFamily[family]
-        if family in (AF_INET, AF_INET6): addr = tuple(addr)
-        else: addr = str(addr)
-        
+        if family in (AF_INET, AF_INET6):
+            addr = tuple(addr)
+        else:
+            addr = str(addr)
+
         csock, *_ = build_socket(uds_root=None)
         csock.setblocking(True)
         csock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
@@ -57,7 +60,8 @@ class AioRpcClient(AioRpcBase):
             ''''''
             self.server_id, err = _id
             if err:
-                raise Exception("Handshake Error: Client RPC cannot connect to Server RPC correctly.")
+                raise Exception(
+                    "Handshake Error: Client RPC cannot connect to Server RPC correctly.")
             self.init_ok.set()
         pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.Init, pack_id, self.id, self.mark))
@@ -65,47 +69,41 @@ class AioRpcClient(AioRpcBase):
     def call_func(self, name_func, callback, *args):
         ''''''
         pack_id = self._new_pack_id(callback)
-        
-        self.csock.write((MsgType.Func, pack_id, name_func, args))
 
+        self.csock.write((MsgType.Func, pack_id, name_func, args))
 
     @_asynchronify(call_func, 1)
     async def async_call_func(self, name_func, *args):
         ''''''
-        
 
     def call_async_func(self, name_func, callback, *args):
         ''''''
         pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.AsyncFunc, pack_id, name_func, args))
 
-
     @_asynchronify(call_async_func, 1)
     async def async_call_async_func(self, name_func, *args):
         ''''''
 
-    
     def call_method(self, name_self, name_method, callback, *args):
         ''''''
         pack_id = self._new_pack_id(callback)
-        self.csock.write((MsgType.Method, pack_id, name_self, name_method, args))
-
+        self.csock.write(
+            (MsgType.Method, pack_id, name_self, name_method, args))
 
     @_asynchronify(call_method, 2)
     async def async_call_method(self, name_self, name_method, *args):
         ''''''
 
-
     def call_async_method(self, name_self, name_method, callback, *args):
         ''''''
         pack_id = self._new_pack_id(callback)
-        self.csock.write((MsgType.AsyncMethod, pack_id, name_self, name_method, args))
+        self.csock.write((MsgType.AsyncMethod, pack_id,
+                         name_self, name_method, args))
 
-    
     @_asynchronify(call_async_method, 2)
     async def async_call_async_method(self, name_self, name_method, *args):
         ''''''
-
 
     def instantiate(self, name_class, callback, *args):
         '''
@@ -114,9 +112,22 @@ class AioRpcClient(AioRpcBase):
         pack_id = self._new_pack_id(callback)
         self.csock.write((MsgType.Class, pack_id, name_class, args))
 
-
     @_asynchronify(instantiate, 1)
     async def async_instantiate(self, name_class, *args) -> int:
         '''
         create a new instance, e.g., a instance of a class, a number, and so on.
         '''
+
+    def get_progress(self, name, callback):
+        '''
+        get remote progress
+        '''
+        self.call_method(self.server_id, get_handler(AioRpcBase._get_local_progress), callback, name)
+
+    def add_progress(self, name, callback):
+        '''
+        add remote progress
+        '''
+        self.call_method(self.server_id, get_handler(AioRpcBase._add_local_progress), callback, name)
+
+

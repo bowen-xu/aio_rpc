@@ -8,6 +8,9 @@ from uuid import uuid1, uuid4
 from aiosock import AioSock
 from .utils import MsgType  
 import traceback
+from .progress import Progress
+from collections import defaultdict
+from . import handler
 
 def _asynchronify(_call, pos_callback):
     ''''''
@@ -61,6 +64,12 @@ class AioRpcBase(Process):
         }
         self.id = hash((uuid1(), uuid4()))
         self.objs[self.id] = self
+
+        self.progresses = defaultdict(Progress)
+        h, f = handler.register(self._get_local_progress)
+        self.add(f, h)
+        h, f = handler.register(self._add_local_progress)
+        self.add(f, h)
 
         self.init_ok = Event()
         self.init_ok.clear()
@@ -220,3 +229,37 @@ class AioRpcBase(Process):
     
     def add_obj(self, obj, name):
         self.objs[name] = obj
+
+    def set_progress(self, name, value=0, done=False):
+        '''
+        set local progress
+        '''
+        if not done:
+            progress = self.progresses[name]
+            progress.set(value)
+        else:
+            self.progresses.pop(name, None)
+
+    def _get_local_progress(self, name):
+        ''''''
+        if name in self.progresses:
+            return self.progresses[name].value
+        else:
+            return None
+        
+    def _add_local_progress(self, name):
+        ''''''
+        if name not in self.progresses:
+            self.progresses[name] = Progress()
+
+    def get_progress(self, name):
+        '''
+        get remote progress
+        '''
+        raise NotImplementedError("Virtual Method")
+    
+    def add_progress(self, name):
+        '''
+        add remote progress
+        '''
+        raise NotImplementedError("Virtual Method")
