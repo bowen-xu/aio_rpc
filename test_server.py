@@ -1,5 +1,5 @@
-import inspect
 from aio_rpc import AioRpcServer, rpc
+import asyncio
 
 server = AioRpcServer()
 
@@ -10,8 +10,8 @@ def print_test(content):
 
 
 @rpc(server, 0)
-def test0():
-    pass
+def test0(*args):
+    return 1
 
 @rpc(server, 1)
 def test1():
@@ -39,5 +39,10 @@ class Foo:
         print(s)
         return s
 
+@rpc(server, "call_client")
+async def call_client(client_id):
+    print("call client")
+    msg = await server.async_call_func(client_id, "test", "msg from server")
+    print(msg)
 
 server.run()
