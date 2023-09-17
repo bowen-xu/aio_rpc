@@ -15,7 +15,7 @@ def read_requirements(filename):
             if not line.startswith('#')]
 
 setup(
-    name='asrpc',
+    name='as-rpc',
     python_requires='>=3.7.0', # python version
     version= "1.0.0", # package version
     description="Remote Procedure Caller (RPC) based-on Asynchronous IO and Socket",  # introduction, displayed on PyPI
