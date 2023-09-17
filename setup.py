@@ -17,7 +17,7 @@ def read_requirements(filename):
 setup(
     name='as-rpc',
     python_requires='>=3.7.0', # python version
-    version= "1.0.0r3", # package version
+    version= "1.0.0r4", # package version
     description="Remote Procedure Caller (RPC) based-on Asynchronous IO and Socket",  # introduction, displayed on PyPI
     long_description=read_file('README.md'), # Readme
     long_description_content_type="text/markdown",  # markdown
