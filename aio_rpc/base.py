@@ -26,7 +26,7 @@ def _asynchronify(_call, pos_callback):
                 nonlocal obj_id
                 nonlocal err
                 nonlocal event
-                obj_id, err = data
+                # obj_id, err = data
                 _obj_id, err = data
                 # if err: 
                 #     raise err

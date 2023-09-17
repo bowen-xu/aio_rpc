@@ -1,6 +1,6 @@
 '''
-句柄
-多进程通信时，一个进程调用另一个进程的函数，需要通过句柄来传递函数信息
+Handler
+In multi-process communication, a process calls a function of another process and needs to pass function information through a handler
 '''
 
 import hashlib
@@ -50,7 +50,6 @@ def _hash_function(function: Callable):
     name_module = func.__module__
     name_func = func.__qualname__
     if name_module == '__main__': 
-        # 如果直接运行根目录下的文件，那么module会变成__main__而与该文件名称无关，这会导致bug：如果另一个地方import了这个文件作为module，那么二者的module是不一致的，但对应的却是同一个文件，导致错误。
         name_module = name_func.split('.')[0]
     # name_func = func.__name__
     return _hash((name_module, name_cls, name_func)), func

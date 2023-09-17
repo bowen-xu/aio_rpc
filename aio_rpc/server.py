@@ -109,7 +109,7 @@ class AioRpcServer(AioRpcBase):
                 elif inspect.isfunction(callback_accept) or inspect.ismethod(callback_accept):
                     loop.call_soon(callback_accept, ssock)
                 else:
-                    raise TypeError('callback_accept类型错误')
+                    raise TypeError('callback_accept: error type')
 
     def _handle_msg__Init(self, data, ssock: AioSock):
         ''''''
@@ -130,7 +130,7 @@ class AioRpcServer(AioRpcBase):
         pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.Func, pack_id, name_func, args))
 
-    @_asynchronify(call_func, 1)
+    @_asynchronify(call_func, 2)
     async def async_call_func(self, client_id, name_func, *args):
         ''''''
 
@@ -142,7 +142,7 @@ class AioRpcServer(AioRpcBase):
         pack_id = self._new_pack_id(callback)
         ssock.write((MsgType.AsyncFunc, pack_id, name_func, args))
 
-    @_asynchronify(call_async_func, 1)
+    @_asynchronify(call_async_func, 2)
     async def async_call_async_func(self, client_id, name_func, *args):
         ''''''
 
