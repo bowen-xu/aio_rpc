@@ -4,7 +4,9 @@ Remote Procedure Caller based-on Asynchronous IO and Socket
 
 ## Quick Start
 
+TBA
 
+<!-- 
 
 ## APIs
 
@@ -37,6 +39,15 @@ To initialize the server, this method create an (asynchronous) socket through `a
 
 ##### `init`
 
-##### `call`
+##### `call` 
+
+-->
 
 
+
+## Benchmark
+
+| Framework | Speed (req/s) |
+| ---- | ----- |
+| [zero (v0.4.1)](https://github.com/Ananto30/zero) | 2173 |
+| aio-rpc (this repo) | *10244* |

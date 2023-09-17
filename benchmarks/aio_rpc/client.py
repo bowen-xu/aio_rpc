@@ -1,9 +1,9 @@
 
-from pydoc import cli
+import sys
+sys.path.append("../..")
 from aiosock import asyncio
 from aio_rpc import AioRpcClient, RpcServerObject
 from time import time
-import aiosock
 
 
 def callback(data):
