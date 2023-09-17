@@ -17,7 +17,7 @@ def read_requirements(filename):
 setup(
     name='as-rpc',
     python_requires='>=3.7.0', # python version
-    version= "1.0.0", # package version
+    version= "1.0.0r1", # package version
     description="Remote Procedure Caller (RPC) based-on Asynchronous IO and Socket",  # introduction, displayed on PyPI
     long_description=read_file('README.md'), # Readme
     long_description_content_type="text/markdown",  # markdown
@@ -28,10 +28,10 @@ setup(
     install_requires=read_requirements('requirements.txt'), 
     include_package_data=True,
     package_data={
-        '': ['*.json', '*.txt'], 
+        '': ['*.json', '*.txt']
         },
     license="MIT",
-    keywords=['asyncio', 'rpc', '', 'socket', 'remote procedure call'],
+    keywords=['asyncio', 'rpc', 'socket', 'remote procedure call'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
