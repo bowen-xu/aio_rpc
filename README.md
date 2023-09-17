@@ -1,6 +1,6 @@
 # as_rpc
 
-`as_rpc` is a package of Remote Procedure Call (RPC) based-on *Asynchronous IO* and *Socket*.
+`as_rpc` is a python package for Remote Procedure Call (RPC) based-on *Asynchronous IO* and *Socket*.
 
 It supports bidirectional calls, and it has very high efficiency.
 
@@ -168,7 +168,7 @@ server.run()
 
 ### Register Functions
 
-You can register a function or async function by add a decorator before the function, for example
+You can register a function or async function by adding a *decorator* on a function, for example
 ```Python
 @rpc(server, 0)
 def test0(*args):
@@ -182,7 +182,7 @@ In `@rpc(server, name)`, the first parameter is the server instance, while the s
 ```Python
 s = await client.async_call_async_func("test1")
 ```
-There are four types of calling a function: `call_func()`, `async_call_func()`, `call_async_func()`, and `async_call_async_func()`. The meaning of them will be illustrated later (see the section "**Call a Function**").
+There are four types of calling a function: `call_func()`, `async_call_func()`, `call_async_func()`, and `async_call_async_func()`. The meaning of them will be illustrated later (see the section "**Call Functions**").
 
 In client programe, functions can also be registered in the same way.
 ```Python
@@ -205,6 +205,7 @@ For a server, there are also four types of calling a function, with the same nam
 - `async_call_func(client_id, name_func, *args)`,
 - `call_async_func(client_id, name_func, callback, *args)`,
 - `async_call_async_func(client_id, name_func, *args)`.
+
 The parameter `client_id` determines which client to call.
 
 An example of calling a function by server is
@@ -227,9 +228,10 @@ To call a method of it, you can use the four
 - `async_call_method(self, name_self, name_method, *args)`,
 - `call_async_method(self, name_self, name_method, callback, *args)`,
 - `async_call_async_method(self, name_self, name_method, *args)`.
+
 The difference among the four types is similar to the previous.
 
-An example to instantiate a class and call the methods is
+An example to instantiate a class and to call methods is
 ```Python
 foo = await client.async_instantiate('Foo')
 print(foo)
