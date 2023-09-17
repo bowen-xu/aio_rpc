@@ -144,9 +144,9 @@ msg from server
 
 In the client, the program calls some functions in the server, gets the return values, and prints them.
 
-### Create and Run a Server
+### Create and Run a Server/Client
 
-To create a server, first import relative objects
+To create a server, first import related objects
 ```Python
 from as_rpc import AioRpcServer, rpc
 ```
@@ -155,7 +155,7 @@ and then instantiate a server by
 server = AioRpcServer()
 ```
 
-To run the server, you can either call `server.init()` and then start the event-loop if `asyncio`
+To run the server, you can either call `server.init()` and then start the event-loop of `asyncio`
 ```Python
 server.init()
 loop = asyncio.get_event_loop()
@@ -164,6 +164,22 @@ loop.run_forever()
 or just call `server.run()` which packs the code above
 ```Python
 server.run()
+```
+
+To create a client, first import related objects
+```Python
+from as_rpc import AioRpcClient, rpc
+```
+and then instantiate a client by
+```Python
+client = AioRpcClient()
+```
+
+To run the client, call `client.init()` and then start the event-loop of `asyncio`
+```Python
+client.init()
+loop = asyncio.get_event_loop()
+loop.run_forever()
 ```
 
 ### Register Functions
