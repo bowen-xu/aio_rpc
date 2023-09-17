@@ -122,11 +122,13 @@ python test_client.py
 You will see the outputs from the server
 
 ```
-start listening
-sscok <socket.socket fd=7, family=1, type=1, proto=0, laddr=cache/io_process/-2076274903368595833.sock>
 this is test1.
 hello world! None
 this is test1.
+this is test3.
+this is test4.
+call client
+return from client
 ```
 and the outputs from the client
 ```
@@ -134,7 +136,10 @@ main
 ('this is test1.', None)
 ('None', None)
 async this is test1.
-0.00010230369567871094 s/seq, 9774.817941480258 seq/s
+-8991251603859186137
+this is test3.
+this is test4.
+msg from server
 ```
 
 In the client, the program calls some functions in the server, gets the return values, and prints them.

@@ -1,2 +1,3 @@
 aiosock >= 1.0.2
 asyncio
+bidict
