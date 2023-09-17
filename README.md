@@ -12,9 +12,9 @@ To install `as-rpc`, run the command
 pip install as-rpc
 ```
 
-Let's run the program first, and then some more details on how to use `as-rpc` will be give.
+Let's run the program first, and then some more details on how to use `as-rpc` will be given.
 
-Suppose we have two file, one for server and the other for client.
+Suppose we have two files, one for server and the other for client.
 
 Server Example (see also `test_server.py`)
 ```Python
