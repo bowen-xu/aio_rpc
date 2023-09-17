@@ -1,49 +1,240 @@
 # aio_rpc
 
-Remote Procedure Caller based-on Asynchronous IO and Socket
+`aio_rpc` is a package of Remote Procedure Call (RPC) based-on *Asynchronous IO* and *Socket*.
+
+It supports bidirectional calls, and it has very high efficiency.
 
 ## Quick Start
 
-TBA
+To install `aio-rpc`, run the command
 
-<!-- 
+```
+pip install aio-rpc
+```
 
-## APIs
+Let's run the program first, and then some more details on how to use `aio-rpc` will be give.
 
-#### `AioRpcNode`
+Suppose we have two file, one for server and the other for client.
 
-This is an abstract class, which should not be instantiated directly. This class is succeeded by `AioRpcServer` and `AioRpcClient`, which are classes for server and client correspondingly.
+Server Example (see also `test_server.py`)
+```Python
+from aio_rpc import AioRpcServer, rpc
+import asyncio
 
-##### `run`
+server = AioRpcServer()
 
-Once you instantiate an `AioRpcServer` or an `AioRpcClient`, you can call the method `run` to start the server or the client. This method starts an `event_loop` of `asyncio`, so the program would be blocked after starting. If you wish to start the loop later at another place, you should call the method `init` to initialize the server/client.
-
-#### `AioRpcServer(AioRpcNode)`
-
-##### `__init__`
-
-##### `add`
-
-##### `remove`
-
-##### `register`
-
-##### `init`
-
-To initialize the server, this method create an (asynchronous) socket through `aiosock`, and cache the IP and port into a file, so that clients can reach the file and then connect to the server socket.
+@rpc(server, "test")
+def print_test(content):
+    print("hello world!", content)
+    return str(content)
 
 
-#### `AioRpcClient(AioRpcNode)`
+@rpc(server, 0)
+def test0(*args):
+    return 1
 
-##### `__init__`
+@rpc(server, 1)
+def test1():
+    s = "this is test1."
+    print(s)
+    return s
 
-##### `init`
+@rpc(server, 2)
+async def test2():
+    s = "this is test2."
+    print(s)
+    return s
 
-##### `call` 
+@rpc(server, 'Foo')
+class Foo:
+    @rpc(server, 3)
+    async def test3(self):
+        s = "this is test3."
+        print(s)
+        return s
+    
+    @rpc(server, 4)
+    def test4(self):
+        s = "this is test4."
+        print(s)
+        return s
 
--->
+@rpc(server, "call_client")
+async def call_client(client_id):
+    print("call client")
+    msg = await server.async_call_func(client_id, "test", "msg from server")
+    print(msg)
+
+server.run()
+```
+
+Client Example (see also `test_client.py`)
+```Python
+import asyncio
+from aio_rpc import AioRpcClient, RpcServerObject, rpc
+from time import time
+
+def callback(data):
+    print(data)
+
+client = AioRpcClient()
+
+client.init()
 
 
+def main():
+    print('main')
+    client.call_func(1, callback)
+    client.call_func("test", callback, RpcServerObject(client.id))
+
+async def main2():
+    s = await client.async_call_func(1)
+    print('async', s)
+
+async def main3():
+    foo = await client.async_instantiate('Foo')
+    print(foo)
+    print(await client.async_call_async_method(foo, 3))
+    print(await client.async_call_method(foo, 4))
+
+@rpc(client, "test")
+def test(msg):
+    print(msg)
+    return "return from client"
+
+loop = asyncio.get_event_loop()
+loop.call_soon(main)
+loop.run_until_complete(main2())
+loop.run_until_complete(main3())
+loop.run_until_complete(client.async_call_async_func("call_client", client.id))
+```
+
+In one terminal, run the command
+```
+python test_server.py
+```
+
+In another terminal, run the command
+```
+python test_client.py
+```
+
+You will see the outputs from the server
+
+```
+start listening
+sscok <socket.socket fd=7, family=1, type=1, proto=0, laddr=cache/io_process/-2076274903368595833.sock>
+this is test1.
+hello world! None
+this is test1.
+```
+and the outputs from the client
+```
+main
+('this is test1.', None)
+('None', None)
+async this is test1.
+0.00010230369567871094 s/seq, 9774.817941480258 seq/s
+```
+
+In the client, the program calls some functions in the server, gets the return values, and prints them.
+
+### Create and Run a Server
+
+To create a server, first import relative objects
+```Python
+from aio_rpc import AioRpcServer, rpc
+```
+and then instantiate a server by
+```Python
+server = AioRpcServer()
+```
+
+To run the server, you can either call `server.init()` and then start the event-loop if `asyncio`
+```Python
+server.init()
+loop = asyncio.get_event_loop()
+loop.run_forever()
+```
+or just call `server.run()` which packs the code above
+```Python
+server.run()
+```
+
+### Register Functions
+
+You can register a function or async function by add a decorator before the function, for example
+```Python
+@rpc(server, 0)
+def test0(*args):
+    return 0
+
+@rpc(server, "test1")
+async def test1(*args):
+    return 1
+```
+In `@rpc(server, name)`, the first parameter is the server instance, while the second parameter is the name denoting the corresponding function. Client can call this function by the name defined here. For example, in client
+```Python
+s = await client.async_call_async_func("test1")
+```
+There are four types of calling a function: `call_func()`, `async_call_func()`, `call_async_func()`, and `async_call_async_func()`. The meaning of them will be illustrated later (see the section "**Call a Function**").
+
+In client programe, functions can also be registered in the same way.
+```Python
+@rpc(client, "test")
+def test(msg):
+    print(msg)
+    return "return from client"
+```
+
+### Call Functions
+
+For a client, there are four types of calling a function:
+- `call_func(name_func, callback, *args)`: call a normal function directly in the remote. The first parameter is the function name in the remote (server or client); the second parameter `callback` is a function which would be called after the result from the remote is returned. It could be `None` if the returned value is not concerned. The subsequent `args` is a list of arguments passed to the remote.
+- `async_call_func(name_func, *args)`: call a normal function asynchronously in the remote. You can use `await async_call_func(...)` to get the returned value, so there is no need to claim the callback function.
+- `call_async_func(name_func, callback, *args)`: call an async function directly in the remote. The function in the remote is asynchronous, defined with keyword `async`. The parameters are the same as `call_func()`.
+- `async_call_async_func(name_func, *args)`: call an async function asynchronously in the remote. The parameters are the same as `call_async_func()`.
+
+For a server, there are also four types of calling a function, with the same names as the above. The difference is that there is an additional parameter in the first postion of each of the four, i.e., `client_id`. 
+- `call_func(client_id, name_func, callback, *args)`,
+- `async_call_func(client_id, name_func, *args)`,
+- `call_async_func(client_id, name_func, callback, *args)`,
+- `async_call_async_func(client_id, name_func, *args)`.
+The parameter `client_id` determines which client to call.
+
+An example of calling a function by server is
+```Python
+@rpc(server, "call_client")
+async def call_client(client_id):
+    print("call client")
+    msg = await server.async_call_func(client_id, "test", "msg from server")
+    print(msg)
+```
+
+All the clients' ids are avaible through `server.clients.keys()`.
+
+### Instantiate Classes and Call Methods
+
+For a client, you can create an instance of class in the remote by `instantiate(<Remote-Class-Marker>)` or `async_instantiate(<Remote-Class-Marker>)`. The returned value is the handler of the remote instance.
+
+To call a method of it, you can use the four
+- `call_method(self, name_self, name_method, callback, *args)`,
+- `async_call_method(self, name_self, name_method, *args)`,
+- `call_async_method(self, name_self, name_method, callback, *args)`,
+- `async_call_async_method(self, name_self, name_method, *args)`.
+The difference among the four types is similar to the previous.
+
+An example to instantiate a class and call the methods is
+```Python
+foo = await client.async_instantiate('Foo')
+print(foo)
+print(await client.async_call_async_method(foo, 3))
+print(await client.async_call_method(foo, 4))
+```
+
+For a server, you can do similar things, except that you need to pass a parameter `client_id` for each calling.
+
+That's all about the usage of aio-rpc. You can raise issues in the github repo if you have questions, want to report bugs, or need more features.
 
 ## Benchmark
 
