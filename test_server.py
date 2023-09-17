@@ -1,4 +1,4 @@
-from aio_rpc import AioRpcServer, rpc
+from as_rpc import AioRpcServer, rpc
 import asyncio
 
 server = AioRpcServer()

@@ -1,1 +1,1 @@
-from .aio_rpc import *
+from .as_rpc import *

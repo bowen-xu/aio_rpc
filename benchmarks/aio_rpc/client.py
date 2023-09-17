@@ -2,7 +2,7 @@
 import sys
 sys.path.append("../..")
 from aiosock import asyncio
-from aio_rpc import AioRpcClient, RpcServerObject
+from as_rpc import AioRpcClient, RpcServerObject
 from time import time
 
 

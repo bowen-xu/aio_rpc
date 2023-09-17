@@ -1,6 +1,6 @@
 import sys
 sys.path.append("../..")
-from aio_rpc import AioRpcServer, rpc
+from as_rpc import AioRpcServer, rpc
 
 server = AioRpcServer()
 

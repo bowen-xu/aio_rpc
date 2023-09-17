@@ -1,5 +1,5 @@
 import asyncio
-from aio_rpc import AioRpcClient, RpcServerObject, rpc
+from as_rpc import AioRpcClient, RpcServerObject, rpc
 from time import time
 
 def callback(data):

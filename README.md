@@ -1,24 +1,24 @@
-# aio_rpc
+# as_rpc
 
-`aio_rpc` is a package of Remote Procedure Call (RPC) based-on *Asynchronous IO* and *Socket*.
+`as_rpc` is a package of Remote Procedure Call (RPC) based-on *Asynchronous IO* and *Socket*.
 
 It supports bidirectional calls, and it has very high efficiency.
 
 ## Quick Start
 
-To install `aio-rpc`, run the command
+To install `as-rpc`, run the command
 
 ```
-pip install aio-rpc
+pip install as-rpc
 ```
 
-Let's run the program first, and then some more details on how to use `aio-rpc` will be give.
+Let's run the program first, and then some more details on how to use `as-rpc` will be give.
 
 Suppose we have two file, one for server and the other for client.
 
 Server Example (see also `test_server.py`)
 ```Python
-from aio_rpc import AioRpcServer, rpc
+from as_rpc import AioRpcServer, rpc
 import asyncio
 
 server = AioRpcServer()
@@ -71,7 +71,7 @@ server.run()
 Client Example (see also `test_client.py`)
 ```Python
 import asyncio
-from aio_rpc import AioRpcClient, RpcServerObject, rpc
+from as_rpc import AioRpcClient, RpcServerObject, rpc
 from time import time
 
 def callback(data):
@@ -143,7 +143,7 @@ In the client, the program calls some functions in the server, gets the return v
 
 To create a server, first import relative objects
 ```Python
-from aio_rpc import AioRpcServer, rpc
+from as_rpc import AioRpcServer, rpc
 ```
 and then instantiate a server by
 ```Python
@@ -234,11 +234,11 @@ print(await client.async_call_method(foo, 4))
 
 For a server, you can do similar things, except that you need to pass a parameter `client_id` for each calling.
 
-That's all about the usage of aio-rpc. You can raise issues in the github repo if you have questions, want to report bugs, or need more features.
+That's all about the usage of as-rpc. You can raise issues in the github repo if you have questions, want to report bugs, or need more features.
 
 ## Benchmark
 
 | Framework | Speed (req/s) |
 | ---- | ----- |
 | [zero (v0.4.1)](https://github.com/Ananto30/zero) | 2173 |
-| aio-rpc (this repo) | *10244* |
+| as-rpc (this repo) | *10244* |
