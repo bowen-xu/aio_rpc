@@ -12,6 +12,7 @@ from .base import AioRpcBase, _asynchronify
 from .progress import Progress
 from collections import defaultdict
 from .handler import get_handler
+import logging
 
 class AioRpcClient(AioRpcBase):
     csock: AioSock = None
@@ -43,9 +44,9 @@ class AioRpcClient(AioRpcBase):
         csock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
         csock.setsockopt(SOL_SOCKET, SO_SNDBUF, self.buff)
 
-        print('connecting...')
+        logging.info('RPC connecting...')
         csock.connect(addr)
-        print('csock', csock)
+        logging.debug(f'csock {csock}')
         csock = AioSock(csock, 4)
         self.csock = csock
 

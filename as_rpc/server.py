@@ -9,6 +9,8 @@ from typing import Callable, Dict, Tuple, Any, Coroutine, Awaitable
 from pathlib import Path
 from socket import AddressFamily, socket, SOL_SOCKET, SO_RCVBUF, SO_SNDBUF
 from .handler import get_handler
+import logging
+
 AF_UNIX = None
 try:
     from socket import AF_UNIX
@@ -51,7 +53,7 @@ class AioRpcServer(AioRpcBase):
             asyncio.set_event_loop(asyncio.SelectorEventLoop())
             loop = asyncio.get_event_loop()
         self.loop = loop
-        print('IO Process'.center(50, '='))
+        logging.debug('IO Process'.center(50, '='))
 
         try:
             # delete the old socket file
@@ -72,7 +74,7 @@ class AioRpcServer(AioRpcBase):
         lsock.setsockopt(SOL_SOCKET, SO_RCVBUF, self.buff)
         lsock.setsockopt(SOL_SOCKET, SO_SNDBUF, self.buff)
 
-        print('lsock', lsock)
+        logging.debug(f'lsock {lsock}')
         loop.create_task(self._start_listening(lsock, self._on_acception))
         filename = self.root/(self.name+'.json')
         with open(filename, 'w') as f:
@@ -82,8 +84,8 @@ class AioRpcServer(AioRpcBase):
                     'family': lsock.family.name
                 }
             }, f)
-        print(f'Server [{self.name}]: {addr}')
-        print('IO Process'.center(50, '-'))
+        logging.debug(f'Server [{self.name}]: {addr}')
+        logging.debug('IO Process'.center(50, '-'))
 
         self.init_ok.set()
 
@@ -92,7 +94,7 @@ class AioRpcServer(AioRpcBase):
 
     async def _start_listening(self, lsock: socket, callback_accept: 'Callable|Coroutine' = None):
         ''''''
-        print('start listening')
+        logging.debug('start listening')
         lsock.listen()
         lsock.setblocking(False)
 
@@ -100,7 +102,7 @@ class AioRpcServer(AioRpcBase):
 
         while True:
             ssock, _ = await loop.sock_accept(lsock)
-            print('sscok', ssock)
+            logging.debug((f'sscok {ssock}'))
             ssock = AioSock(ssock, 4)
 
             if callback_accept is not None:

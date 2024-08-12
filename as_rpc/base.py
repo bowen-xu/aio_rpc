@@ -11,6 +11,8 @@ import traceback
 from .progress import Progress
 from collections import defaultdict
 from . import handler
+import logging
+
 
 def _asynchronify(_call, pos_callback):
     ''''''
@@ -135,7 +137,7 @@ class AioRpcBase(Process):
             if pack_id is not None:
                 ssock.write((MsgType.Return, pack_id, (None, e)))
             else:
-                print(e)
+                logging.error(e)
             return
         if pack_id is not None:
             ssock.write((MsgType.Return, pack_id, (ret, None)))
