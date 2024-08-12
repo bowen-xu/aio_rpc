@@ -20,7 +20,7 @@ def rpc(instance: 'AioRpcBase', name):
     def my_decorator(func: 'Callable|Awaitable'):
         if inspect.iscoroutinefunction(func):
             instance.add_async(func, name)
-        elif inspect.isfunction(func):
+        elif callable(func):
             instance.add(func, name)
         elif inspect.isclass(func):
             instance.add_class(func, name)
